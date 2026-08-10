@@ -4,13 +4,8 @@
 # Rapportages en analyses van Energy Server data
 # --------------------------------------------------------------
 
-from ..database import maak_databaseverbinding
-from ..config import laad_configuratie
-
 # ==============================================================
-
 # ENERGIE - DAG
-
 # ==============================================================
 
 def energie_dag(verbinding, datum):
@@ -212,13 +207,13 @@ def batterij_dag(verbinding, datum):
     return {
         # Lifetime tellers
         "charged_kwh": (
-            einde["lifetime_energy_charged_wh"]
-            - begin["lifetime_energy_charged_wh"]
+            float(einde["lifetime_energy_charged_wh"])
+            - float(begin["lifetime_energy_charged_wh"])
         ) / 1000,
 
         "discharged_kwh": (
-            einde["lifetime_energy_discharged_wh"]
-            - begin["lifetime_energy_discharged_wh"]
+            float(einde["lifetime_energy_discharged_wh"])
+            - float(begin["lifetime_energy_discharged_wh"])
         ) / 1000,
 
         # State of Charge
@@ -445,14 +440,23 @@ def batterij_per_dag(verbinding, start_datum, eind_datum):
 
     for dag in dagen:
 
-        # Eerste en laatste batterijmeting van deze dag
+        # ------------------------------------------------------
+        # Alle batterijmetingen van deze dag ophalen
+        #
+        # Dit laat ons toe om:
+        # - lifetime counters van begin/einde te bepalen
+        # - eerste geldige SOC te zoeken
+        # - laatste geldige SOC te zoeken
+        # ------------------------------------------------------
+
         sql_metingen = """
             SELECT
+                timestamp,
                 lifetime_energy_charged_wh,
                 lifetime_energy_discharged_wh,
                 battery_percentage
             FROM energy_battery
-            WHERE timestamp IN (%s, %s)
+            WHERE DATE(timestamp) = %s
             ORDER BY timestamp
         """
 
@@ -460,25 +464,60 @@ def batterij_per_dag(verbinding, start_datum, eind_datum):
 
         cursor.execute(
             sql_metingen,
-            (
-                dag["eerste_meting"],
-                dag["laatste_meting"]
-            )
+            (dag["datum"],)
         )
 
         metingen = cursor.fetchall()
 
         cursor.close()
 
-        if len(metingen) != 2:
+        if not metingen:
             continue
 
+        # ------------------------------------------------------
+        # Eerste en laatste meting
+        #
+        # De lifetime tellers gebruiken we voor de eerste
+        # en laatste meting van de dag.
+        # ------------------------------------------------------
+
         begin = metingen[0]
-        einde = metingen[1]
+        einde = metingen[-1]
+
+        # ------------------------------------------------------
+        # Eerste en laatste geldige SOC
+        #
+        # 0% is geldig.
+        # Alleen NULL betekent onbekend.
+        # ------------------------------------------------------
+
+        soc_meting_begin = None
+        soc_meting_einde = None
+
+        for meting in metingen:
+
+            if meting["battery_percentage"] is not None:
+
+                if soc_meting_begin is None:
+                    soc_meting_begin = meting
+
+                soc_meting_einde = meting
+
+        # ------------------------------------------------------
+        # Resultaat
+        # ------------------------------------------------------
 
         resultaten.append({
-            "datum": dag["datum"],
-            "datapunten": dag["datapunten"],
+
+            "datum":
+                dag["datum"],
+
+            "datapunten":
+                dag["datapunten"],
+
+            # --------------------------------------------------
+            # Lifetime tellers
+            # --------------------------------------------------
 
             "charged_kwh": (
                 einde["lifetime_energy_charged_wh"]
@@ -490,390 +529,40 @@ def batterij_per_dag(verbinding, start_datum, eind_datum):
                 - begin["lifetime_energy_discharged_wh"]
             ) / 1000,
 
-            "soc_begin": begin["battery_percentage"],
-            "soc_einde": einde["battery_percentage"]
+            # --------------------------------------------------
+            # SOC
+            # --------------------------------------------------
+
+            "soc_begin": (
+                soc_meting_begin["battery_percentage"]
+                if soc_meting_begin is not None
+                else None
+            ),
+
+            "soc_einde": (
+                soc_meting_einde["battery_percentage"]
+                if soc_meting_einde is not None
+                else None
+            ),
+
+            # --------------------------------------------------
+            # SOC timestamps
+            # --------------------------------------------------
+
+            "soc_begin_timestamp": (
+                soc_meting_begin["timestamp"]
+                if soc_meting_begin is not None
+                else None
+            ),
+
+            "soc_einde_timestamp": (
+                soc_meting_einde["timestamp"]
+                if soc_meting_einde is not None
+                else None
+            )
         })
 
     return resultaten
-
-# ==============================================================
-# BATTERIJ - DIAGNOSE PER 5 MINUTEN
-# ==============================================================
-#
-# Tijdelijke diagnostische functie.
-#
-# Doel:
-#   Onderzoeken hoe de lifetime charged/discharged tellers
-#   zich verhouden tot de werkelijke verandering van de
-#   energie-inhoud van de batterij volgens SOC.
-#
-# Er wordt niets gewijzigd aan de bestaande batterijfuncties.
-# ==============================================================
-
-def batterij_diagnose_dag(verbinding, datum):
-
-    sql = """
-        SELECT
-            timestamp,
-            battery_percentage,
-            full_pack_energy_available_wh,
-            power_w,
-            lifetime_energy_charged_wh,
-            lifetime_energy_discharged_wh
-        FROM energy_battery
-        WHERE DATE(timestamp) = %s
-        ORDER BY timestamp
-    """
-
-    cursor = verbinding.cursor(dictionary=True)
-    cursor.execute(sql, (datum,))
-    rijen = cursor.fetchall()
-    cursor.close()
-
-    if len(rijen) < 2:
-        print()
-        print("Geen voldoende batterijgegevens voor diagnose.")
-        return
-
-    print()
-    print("=" * 180)
-    print(f"BATTERIJDIAGNOSE {datum}")
-    print("=" * 180)
-
-    print(
-        f"{'Timestamp':19} "
-        f"{'SOC':>7} "
-        f"{'SOC':>7} "
-        f"{'SOC kWh':>9} "
-        f"{'SOC kWh':>9} "
-        f"{'Delta':>9} "
-        f"{'Power':>9} "
-        f"{'Power kWh':>10} "
-        f"{'Charged':>10} "
-        f"{'Discharged':>12}"
-    )
-
-    print(
-        f"{'':19} "
-        f"{'begin':>7} "
-        f"{'einde':>7} "
-        f"{'begin':>9} "
-        f"{'einde':>9} "
-        f"{'kWh':>9} "
-        f"{'W':>9} "
-        f"{'interval':>10} "
-        f"{'delta kWh':>10} "
-        f"{'delta kWh':>12}"
-    )
-
-    print("-" * 180)
-
-    # ==========================================================
-    # TOTALEN
-    # ==========================================================
-
-    totaal_power_laden = 0.0
-    totaal_power_ontladen = 0.0
-
-    totaal_lifetime_charged = 0.0
-    totaal_lifetime_discharged = 0.0
-
-    totaal_soc_opslag_laden = 0.0
-    totaal_soc_opslag_ontladen = 0.0
-
-    aantal_laden = 0
-    aantal_ontladen = 0
-
-    # ==========================================================
-    # INTERVALLEN
-    # ==========================================================
-
-    for i in range(1, len(rijen)):
-
-        vorige = rijen[i - 1]
-        huidige = rijen[i]
-
-        # ------------------------------------------------------
-        # Tijd
-        # ------------------------------------------------------
-
-        seconden = (
-            huidige["timestamp"] - vorige["timestamp"]
-        ).total_seconds()
-
-        uren = seconden / 3600.0
-
-        # ------------------------------------------------------
-        # Databasewaarden expliciet naar float
-        # ------------------------------------------------------
-
-        soc_begin = float(vorige["battery_percentage"])
-        soc_einde = float(huidige["battery_percentage"])
-
-        capaciteit_begin = float(
-            vorige["full_pack_energy_available_wh"]
-        )
-
-        capaciteit_einde = float(
-            huidige["full_pack_energy_available_wh"]
-        )
-
-        power = float(vorige["power_w"])
-
-        charged_begin = float(
-            vorige["lifetime_energy_charged_wh"]
-        )
-
-        charged_einde = float(
-            huidige["lifetime_energy_charged_wh"]
-        )
-
-        discharged_begin = float(
-            vorige["lifetime_energy_discharged_wh"]
-        )
-
-        discharged_einde = float(
-            huidige["lifetime_energy_discharged_wh"]
-        )
-
-        # ------------------------------------------------------
-        # Energie volgens SOC
-        #
-        # SOC (%) * beschikbare packcapaciteit
-        # ------------------------------------------------------
-
-        soc_energie_begin = (
-            soc_begin / 100.0
-        ) * (
-            capaciteit_begin / 1000.0
-        )
-
-        soc_energie_einde = (
-            soc_einde / 100.0
-        ) * (
-            capaciteit_einde / 1000.0
-        )
-
-        delta_soc_energie = (
-            soc_energie_einde
-            - soc_energie_begin
-        )
-
-        # ------------------------------------------------------
-        # Energie volgens power
-        # ------------------------------------------------------
-
-        energie_power_kwh = (
-            power * uren / 1000.0
-        )
-
-        # ------------------------------------------------------
-        # Lifetime counters
-        # ------------------------------------------------------
-
-        delta_charged_kwh = (
-            charged_einde
-            - charged_begin
-        ) / 1000.0
-
-        delta_discharged_kwh = (
-            discharged_einde
-            - discharged_begin
-        ) / 1000.0
-
-        # ------------------------------------------------------
-        # LADEN
-        # ------------------------------------------------------
-
-        if power > 0:
-
-            aantal_laden += 1
-
-            totaal_power_laden += abs(
-                energie_power_kwh
-            )
-
-            totaal_lifetime_charged += (
-                delta_charged_kwh
-            )
-
-            # Alleen positieve SOC-verandering
-            # telt als opslag tijdens laden.
-            if delta_soc_energie > 0:
-                totaal_soc_opslag_laden += (
-                    delta_soc_energie
-                )
-
-        # ------------------------------------------------------
-        # ONTLADEN
-        # ------------------------------------------------------
-
-        elif power < 0:
-
-            aantal_ontladen += 1
-
-            totaal_power_ontladen += abs(
-                energie_power_kwh
-            )
-
-            totaal_lifetime_discharged += (
-                delta_discharged_kwh
-            )
-
-            # Alleen negatieve SOC-verandering
-            # telt als energie die uit de batterij verdwijnt.
-            if delta_soc_energie < 0:
-                totaal_soc_opslag_ontladen += abs(
-                    delta_soc_energie
-                )
-
-        # ------------------------------------------------------
-        # DIAGNOSTISCHE REGEL
-        # ------------------------------------------------------
-
-        print(
-            f"{huidige['timestamp']} "
-            f"{soc_begin:7.2f} "
-            f"{soc_einde:7.2f} "
-            f"{soc_energie_begin:9.3f} "
-            f"{soc_energie_einde:9.3f} "
-            f"{delta_soc_energie:9.3f} "
-            f"{power:9.1f} "
-            f"{energie_power_kwh:10.3f} "
-            f"{delta_charged_kwh:10.3f} "
-            f"{delta_discharged_kwh:12.3f}"
-        )
-
-    # ==========================================================
-    # SAMENVATTING
-    # ==========================================================
-
-    print()
-    print("=" * 70)
-    print("SAMENVATTING DIAGNOSE")
-    print("=" * 70)
-
-    # ==========================================================
-    # LADEN
-    # ==========================================================
-
-    print()
-    print("LAADINTERVALLEN")
-    print("-" * 70)
-
-    print(
-        f"{'Aantal':25} : "
-        f"{aantal_laden:10d}"
-    )
-
-    print(
-        f"{'Energie volgens power':25} : "
-        f"{totaal_power_laden:10.3f} kWh"
-    )
-
-    print(
-        f"{'Lifetime charged':25} : "
-        f"{totaal_lifetime_charged:10.3f} kWh"
-    )
-
-    print(
-        f"{'SOC-energie toename':25} : "
-        f"{totaal_soc_opslag_laden:10.3f} kWh"
-    )
-
-    # ==========================================================
-    # ONTLADEN
-    # ==========================================================
-
-    print()
-    print("ONTLAADINTERVALLEN")
-    print("-" * 70)
-
-    print(
-        f"{'Aantal':25} : "
-        f"{aantal_ontladen:10d}"
-    )
-
-    print(
-        f"{'Energie volgens power':25} : "
-        f"{totaal_power_ontladen:10.3f} kWh"
-    )
-
-    print(
-        f"{'Lifetime discharged':25} : "
-        f"{totaal_lifetime_discharged:10.3f} kWh"
-    )
-
-    print(
-        f"{'SOC-energie afname':25} : "
-        f"{totaal_soc_opslag_ontladen:10.3f} kWh"
-    )
-
-    # ==========================================================
-    # VERGELIJKINGEN
-    # ==========================================================
-
-    print()
-    print("VERGELIJKINGEN")
-    print("-" * 70)
-
-    print(
-        f"{'Power laden - SOC':25} : "
-        f"{totaal_power_laden - totaal_soc_opslag_laden:10.3f} kWh"
-    )
-
-    print(
-        f"{'Lifetime charged - SOC':25} : "
-        f"{totaal_lifetime_charged - totaal_soc_opslag_laden:10.3f} kWh"
-    )
-
-    print(
-        f"{'Power ontladen - SOC':25} : "
-        f"{totaal_power_ontladen - totaal_soc_opslag_ontladen:10.3f} kWh"
-    )
-
-    print(
-        f"{'Lifetime discharged - SOC':25} : "
-        f"{totaal_lifetime_discharged - totaal_soc_opslag_ontladen:10.3f} kWh"
-    )
-
-    # ==========================================================
-    # TOTALE NETTO BALANS
-    # ==========================================================
-
-    print()
-    print("NETTO BATTERIJBALANS")
-    print("-" * 70)
-
-    netto_power = (
-        totaal_power_laden
-        - totaal_power_ontladen
-    )
-
-    netto_lifetime = (
-        totaal_lifetime_charged
-        - totaal_lifetime_discharged
-    )
-
-    netto_soc = (
-        totaal_soc_opslag_laden
-        - totaal_soc_opslag_ontladen
-    )
-
-    print(
-        f"{'Netto volgens power':25} : "
-        f"{netto_power:10.3f} kWh"
-    )
-
-    print(
-        f"{'Netto volgens lifetime':25} : "
-        f"{netto_lifetime:10.3f} kWh"
-    )
-
-    print(
-        f"{'Netto volgens SOC':25} : "
-        f"{netto_soc:10.3f} kWh"
-    )
 
 # ==============================================================
 # DAGRAPPORT
@@ -893,16 +582,15 @@ def toon_dagrapport(verbinding, datum):
     # ENERGIE
     # ----------------------------------------------------------
 
+    print()
+    print("ENERGIE")
+    print("-" * 60)
+
     if energie["datapunten"] == 0:
 
-        print()
         print("Geen energiegegevens gevonden.")
 
     else:
-
-        print()
-        print("ENERGIE")
-        print("-" * 60)
 
         print(
             f"Productie        : "
@@ -946,55 +634,6 @@ def toon_dagrapport(verbinding, datum):
         )
 
         # ------------------------------------------------------
-        # BATTERIJBALANS
-        # ------------------------------------------------------
-
-        print()
-        print("BATTERIJBALANS")
-        print("-" * 60)
-
-        print(
-            f"Charged                  : "
-            f"{batterij['charged_kwh']:9.3f} kWh"
-        )
-
-        print(
-            f"Discharged               : "
-            f"{batterij['discharged_kwh']:9.3f} kWh"
-        )
-
-        print(
-            f"Netto charged            : "
-            f"{batterij['netto_charged_kwh']:9.3f} kWh"
-        )
-
-        if batterij["energie_opgeslagen_begin_kwh"] is not None:
-
-            print(
-                f"Energie opgeslagen begin : "
-                f"{batterij['energie_opgeslagen_begin_kwh']:9.3f} kWh"
-            )
-
-            print(
-                f"Energie opgeslagen einde : "
-                f"{batterij['energie_opgeslagen_einde_kwh']:9.3f} kWh"
-            )
-
-            print(
-                f"Netto opslag volgens SOC : "
-                f"{batterij['energie_opgeslagen_verschil_kwh']:9.3f} kWh"
-            )
-
-            verschil = (
-                float(batterij["netto_charged_kwh"])
-                - float(batterij["energie_opgeslagen_verschil_kwh"])
-            )
-
-            print(
-                f"Niet verklaard verschil  : "
-                f"{verschil:9.3f} kWh"
-            )
-        # ------------------------------------------------------
         # ENERGIEBALANS
         # ------------------------------------------------------
 
@@ -1028,11 +667,15 @@ def toon_dagrapport(verbinding, datum):
     # BATTERIJ
     # ----------------------------------------------------------
 
-    if batterij:
+    print()
+    print("BATTERIJ")
+    print("-" * 60)
 
-        print()
-        print("BATTERIJ")
-        print("-" * 60)
+    if batterij is None:
+
+        print("Geen batterijgegevens gevonden.")
+
+    else:
 
         print(
             f"Charged          : "
@@ -1045,40 +688,160 @@ def toon_dagrapport(verbinding, datum):
         )
 
         print(
-            f"SOC begin        : "
-            f"{batterij['soc_begin']:9.3f} %"
+            f"Netto charged    : "
+            f"{batterij['netto_charged_kwh']:9.3f} kWh"
         )
 
-        print(
-            f"SOC einde        : "
-            f"{batterij['soc_einde']:9.3f} %"
-        )
+        # ------------------------------------------------------
+        # STATE OF CHARGE
+        # ------------------------------------------------------
 
-        print(
-            f"SOC verschil     : "
-            f"{batterij['soc_einde'] - batterij['soc_begin']:9.3f} "
-            f"procentpunt"
-        )
+        print()
 
-        print(
-            f"Capaciteit begin : "
-            f"{batterij['capaciteit_begin_kwh']:9.3f} kWh"
-        )
+        if batterij["soc_begin"] is not None:
 
-        print(
-            f"Capaciteit einde : "
-            f"{batterij['capaciteit_einde_kwh']:9.3f} kWh"
-        )
+            print(
+                f"SOC begin        : "
+                f"{batterij['soc_begin']:9.3f} %"
+            )
 
-        print(
-            f"Power begin      : "
-            f"{batterij['power_begin']:9.3f} W"
-        )
+            print(
+                f"  meting         : "
+                f"{batterij['soc_begin_timestamp']}"
+            )
 
-        print(
-            f"Power einde      : "
-            f"{batterij['power_einde']:9.3f} W"
-        )
+        else:
+
+            print(
+                f"SOC begin        : "
+                f"{'onbekend':>9}"
+            )
+
+        if batterij["soc_einde"] is not None:
+
+            print(
+                f"SOC einde        : "
+                f"{batterij['soc_einde']:9.3f} %"
+            )
+
+            print(
+                f"  meting         : "
+                f"{batterij['soc_einde_timestamp']}"
+            )
+
+        else:
+
+            print(
+                f"SOC einde        : "
+                f"{'onbekend':>9}"
+            )
+
+        if (
+            batterij["soc_begin"] is not None
+            and batterij["soc_einde"] is not None
+        ):
+
+            soc_verschil = (
+                batterij["soc_einde"]
+                - batterij["soc_begin"]
+            )
+
+            print(
+                f"SOC verschil     : "
+                f"{soc_verschil:9.3f} procentpunt"
+            )
+
+        # ------------------------------------------------------
+        # BATTERIJCAPACITEIT
+        # ------------------------------------------------------
+
+        print()
+
+        if batterij["capaciteit_begin_kwh"] is not None:
+
+            print(
+                f"Capaciteit begin  : "
+                f"{batterij['capaciteit_begin_kwh']:9.3f} kWh"
+            )
+
+        else:
+
+            print(
+                f"Capaciteit begin  : "
+                f"{'onbekend':>9}"
+            )
+
+        if batterij["capaciteit_einde_kwh"] is not None:
+
+            print(
+                f"Capaciteit einde  : "
+                f"{batterij['capaciteit_einde_kwh']:9.3f} kWh"
+            )
+
+        else:
+
+            print(
+                f"Capaciteit einde  : "
+                f"{'onbekend':>9}"
+            )
+
+        # ------------------------------------------------------
+        # ENERGIE-INHOUD VOLGENS SOC
+        # ------------------------------------------------------
+
+        if batterij["energie_opgeslagen_begin_kwh"] is not None:
+
+            print()
+            print(
+                f"Energie opgeslagen begin : "
+                f"{batterij['energie_opgeslagen_begin_kwh']:9.3f} kWh"
+            )
+
+            print(
+                f"Energie opgeslagen einde : "
+                f"{batterij['energie_opgeslagen_einde_kwh']:9.3f} kWh"
+            )
+
+            print(
+                f"Netto opslag volgens SOC : "
+                f"{batterij['energie_opgeslagen_verschil_kwh']:9.3f} kWh"
+            )
+
+            verschil = (
+                float(batterij["netto_charged_kwh"])
+                - float(batterij["energie_opgeslagen_verschil_kwh"])
+            )
+
+            print(
+                f"Niet verklaard verschil   : "
+                f"{verschil:9.3f} kWh"
+            )
+
+        # ------------------------------------------------------
+        # BATTERIJVERMOGEN
+        # ------------------------------------------------------
+
+        print()
+
+        if batterij["power_begin"] is not None:
+
+            print(
+                f"Power begin      : "
+                f"{batterij['power_begin']:9.3f} W"
+            )
+
+        if batterij["power_einde"] is not None:
+
+            print(
+                f"Power einde      : "
+                f"{batterij['power_einde']:9.3f} W"
+            )
+
+        # ------------------------------------------------------
+        # METADATA
+        # ------------------------------------------------------
+
+        print()
 
         print(
             f"Datapunten       : "
@@ -1380,35 +1143,3 @@ def toon_weekrapport(verbinding, start_datum, eind_datum):
             f"Power einde       : "
             f"{batterij['power_einde']:11.3f} W"
         )
-
-# ==============================================================
-# MAIN
-# ==============================================================
-
-config = laad_configuratie()
-
-verbinding = maak_databaseverbinding(config)
-
-if verbinding:
-
-    print("Databaseverbinding OK")
-
-    datum = "2026-08-07"
-
-    toon_dagrapport(
-        verbinding,
-        datum
-    )
-
-    batterij_diagnose_dag(
-        verbinding,
-        "2026-08-07"
-    )
-
-    toon_weekrapport(
-        verbinding,
-        "2026-08-01",
-        "2026-08-07"
-    )
-
-    verbinding.close()

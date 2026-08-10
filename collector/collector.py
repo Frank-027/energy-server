@@ -210,65 +210,60 @@ def verwerk_battery_data(data):
 
   return records
 
-#--------------------------------------------------------------
-# Main functie
-#--------------------------------------------------------------
+# --------------------------------------------------------------
+# Verzamel en bewaar
+# --------------------------------------------------------------
 
 def verzamel_en_bewaar(config, verbinding, start_time, end_time):
-  """ Verzamelt data van de SolarEdge API en bewaart deze in de database.
-  """
+    """
+    Verzamelt power- en batterijdata van SolarEdge
+    en bewaart deze in de database.
+    """
 
-  print(f"Data ophalen van {start_time} tot {end_time}")
+    print(f"Data ophalen van {start_time} tot {end_time}")
 
-  # ----------------------------------------------------------
-  # Power
-  # ----------------------------------------------------------
+    # ----------------------------------------------------------
+    # Power
+    # ----------------------------------------------------------
 
-  power_data = haal_power_data_op(config, start_time, end_time)
+    power_data = haal_power_data_op(
+        config,
+        start_time,
+        end_time
+    )
 
-  if power_data is not None:
+    if power_data is not None:
 
-    power_records = verwerk_power_data(power_data)
-    print(f"{len(power_records)} power-record(s) verwerkt.")
+        power_records = verwerk_power_data(power_data)
 
-    if power_records:
-      bewaar_power_data(verbinding, power_records)
+        print(
+            f"{len(power_records)} power-record(s) verwerkt."
+        )
 
-  # ----------------------------------------------------------
-  # Battery
-  # ----------------------------------------------------------
+        if power_records:
+            bewaar_power_data(
+                verbinding,
+                power_records
+            )
 
-  battery_data = haal_battery_data_op(config, start_time, end_time)
+    # ----------------------------------------------------------
+    # Battery
+    # ----------------------------------------------------------
 
-  if battery_data is not None:
+    battery_data = haal_battery_data_op(
+        config,
+        start_time,
+        end_time
+    )
 
-    battery_records = verwerk_battery_data(battery_data)
+    if battery_data is not None:
 
-    if battery_records:
-      bewaar_battery_data(verbinding, battery_records)
+        battery_records = verwerk_battery_data(
+            battery_data
+        )
 
-# --------------------------------------------------------------
-# Test power data ophalen en verwerken
-# --------------------------------------------------------------
-
-start_time = "2026-08-01 00:00:00"
-end_time = "2026-08-08 00:00:00"
-
-config = laad_configuratie()
-
-if config is None:
-  print("Fout: Kon configuratie niet laden.")
-  exit(1)
-
-verbinding = maak_databaseverbinding(config)
-
-if verbinding:
-
-  verzamel_en_bewaar(
-    config,
-    verbinding,
-    start_time,
-    end_time
-  )
-
-  verbinding.close()
+        if battery_records:
+            bewaar_battery_data(
+                verbinding,
+                battery_records
+            )
