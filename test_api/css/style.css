@@ -84,9 +84,25 @@ pre {
 }
 
 .periode {
-    display: flex;
     gap: 30px;
     margin-bottom: 10px;
+    background-color: lightgreen;
+    color: black;
+    padding: 15px;
+    border-radius: 6px;
+    overflow-x: auto;
+    min-height: 30px;
+}
+
+.dag {
+    gap: 30px;
+    margin-bottom: 10px;
+    background-color: lightblue;
+    color: black;
+    padding: 15px;
+    border-radius: 6px;
+    overflow-x: auto;
+    min-height: 30px;
 }
 
 footer {

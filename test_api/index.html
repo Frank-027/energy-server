@@ -19,94 +19,95 @@
          DATUMKEUZE
          ===================================================== -->
 
-    <section class="datum-keuze">
-        <h2>Datum</h2>
+    <section class="dag">
+        <h2>📅 Dag</h2>
+        <section class="datum-keuze">
+            <h2>Datum</h2>
 
-        <label for="datum">
-            Kies een datum:
-        </label>
+            <label for="datum">
+                Kies een datum:
+            </label>
 
-        <input
-            type="date"
-            id="datum"
-            value="2026-08-07"
-        >
-    </section>
+            <input
+                type="date"
+                id="datum"
+                value="2026-08-07"
+            >
+        </section>
 
-    <!-- =====================================================
-         ENERGIE
-         ===================================================== -->
-    <section class="card">
-        <h2>⚡ Energie</h2>
-  
-        <button onclick="haalEnergieDagOp()">
-            Energie gegevens dag ophalen
-        </button>
+        <!-- =====================================================
+            ENERGIE
+            ===================================================== -->
+        <section class="card">
+            <h2>⚡ Energie</h2>
+    
+            <button onclick="haalEnergieDagOp()">
+                Energie gegevens dag ophalen
+            </button>
 
-        <pre id="energieDagData"></pre>
-    </section>
+            <pre id="energieDagData"></pre>
+        </section>
 
-    <!-- =====================================================
-         BATTERIJ
-         ===================================================== -->
+        <!-- =====================================================
+            BATTERIJ
+            ===================================================== -->
 
-    <section class="card">
-        <h2>🔋 Batterij</h2>
+        <section class="card">
+            <h2>🔋 Batterij</h2>
 
-        <button onclick="haalBatterijDagOp()">
-            Batterij per dag ophalen
-        </button>
+            <button onclick="haalBatterijDagOp()">
+                Batterij per dag ophalen
+            </button>
 
-        <pre id="batterijDagData"></pre>
-    </section>
+            <pre id="batterijDagData"></pre>
+        </section>
+    </section>  
     
     <!-- =====================================================
          PERIODE
          ===================================================== -->
 
-    <section class="card">
+    <section class="periode">
         <h2>📅 Periode</h2>
 
-        <div class="periode">
-            <div>
-                <label for="startDatum">
-                    Van:
-                </label>
+        <section class="datum-keuze">
+            <label for="startDatum">
+                Van:
+            </label>
 
-                <input
-                    type="date"
-                    id="startDatum"
-                    value="2026-08-01"
-                >
-            </div>
+            <input
+                type="date"
+                id="startDatum"
+                value="2026-08-01"
+            >
 
-            <div>
-                <label for="eindDatum">
-                    Tot:
-                </label>
+            <label for="eindDatum">
+                Tot:
+            </label>
 
-                <input
-                    type="date"
-                    id="eindDatum"
-                    value="2026-08-07"
-                >
-            </div>
-        </div>
+            <input
+                type="date"
+                id="eindDatum"
+                value="2026-08-07"
+            >
+        </section>
 
-        <button onclick="haalEnergiePeriodeOp()">
-            Energie periode ophalen
-        </button>
+        <section class="card">
+            <button onclick="haalEnergiePeriodeOp()">
+                Energie periode ophalen
+            </button>
 
-        <pre id="energiePeriodeData"></pre>
+            <pre id="energiePeriodeData"></pre>
+        </section>
 
+        <section class="card">
+            <button onclick="haalBatterijPeriodeOp()">
+                Batterij periode ophalen
+            </button>
 
-        <button onclick="haalBatterijPeriodeOp()">
-            Batterij periode ophalen
-        </button>
-
-        <pre id="batterijPeriodeData"></pre>
-
-    </section>
+            <pre id="batterijPeriodeData"></pre>
+        </section>
+    </section>  
 
     <footer>
         Energy API Test © F.Demonie
