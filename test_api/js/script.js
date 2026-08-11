@@ -37,7 +37,7 @@ async function haalEnergieDagOp() {
 
     try {
         const data = await apiAanroepen(
-            `http://192.168.0.35:5000/api/energie/dag/${datum}`
+            `http://${IP_ADDRESS}:5000/api/energie/dag/${datum}`
         );
 
         document.getElementById("energieDagData").textContent =
@@ -57,7 +57,7 @@ async function haalEnergiePeriodeOp() {
 
     try {
         const data = await apiAanroepen(
-            `http://192.168.0.35:5000/api/energie/periode/${startDatum}/${eindDatum}`
+            `http://${IP_ADDRESS}:5000/api/energie/periode/${startDatum}/${eindDatum}`
         );
         
         document.getElementById("energiePeriodeData").textContent =
@@ -76,7 +76,7 @@ async function haalBatterijDagOp() {
 
     try {
         const data = await apiAanroepen(
-            `http://192.168.0.35:5000/api/batterij/dag/${datum}`
+            `http://${IP_ADDRESS}:5000/api/batterij/dag/${datum}`
         );
 
         document.getElementById("batterijDagData").textContent =
@@ -96,13 +96,13 @@ async function haalBatterijPeriodeOp() {
 
     try {
         const data = await apiAanroepen(
-            `http://192.168.0.35:5000/api/batterij/periode/${startDatum}/${eindDatum}`
+            `http://${IP_ADDRESS}:5000/api/batterij/periode/${startDatum}/${eindDatum}`
         );
         
         document.getElementById("batterijPeriodeData").textContent =
             JSON.stringify(data, null, 2);
     } catch ( fout ) {
-        document.getElementById("batterijDagData").textContent = 
+        document.getElementById("batterijPeriodeData").textContent = 
             "Fout: " + fout.message;
     }
 }
