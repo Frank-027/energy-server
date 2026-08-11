@@ -1,0 +1,96 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #f4f6f8;
+    color: #222;
+}
+
+header {
+    background-color: #263238;
+    color: white;
+    padding: 25px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+header h1 {
+    margin: 0 0 8px 0;
+}
+
+header p {
+    margin: 0;
+}
+
+section {
+    margin-bottom: 20px;
+}
+
+.datum-keuze,
+.card {
+    background-color: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.datum-keuze {
+    margin-bottom: 20px;
+}
+
+h2 {
+    margin-top: 0;
+}
+
+label {
+    font-weight: bold;
+    margin-right: 8px;
+}
+
+input[type="date"] {
+    padding: 8px;
+    border: 1px solid #bbb;
+    border-radius: 5px;
+    font-size: 1rem;
+}
+
+button {
+    padding: 10px 16px;
+    margin: 8px 0;
+    border: none;
+    border-radius: 6px;
+    background-color: #1976d2;
+    color: white;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #125aa0;
+}
+
+pre {
+    background-color: #263238;
+    color: #eeeeee;
+    padding: 15px;
+    border-radius: 6px;
+    overflow-x: auto;
+    min-height: 30px;
+}
+
+.periode {
+    display: flex;
+    gap: 30px;
+    margin-bottom: 10px;
+}
+
+footer {
+    text-align: center;
+    color: #777;
+    margin-top: 30px;
+}

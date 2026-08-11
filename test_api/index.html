@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="nl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Energy API Test</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+    <header>
+        <h1>Energy API Test</h1>
+        <p>Testomgeving voor de Energy REST API</p>
+    </header>
+
+    <!-- =====================================================
+         DATUMKEUZE
+         ===================================================== -->
+
+    <section class="datum-keuze">
+        <h2>Datum</h2>
+
+        <label for="datum">
+            Kies een datum:
+        </label>
+
+        <input
+            type="date"
+            id="datum"
+            value="2026-08-07"
+        >
+    </section>
+
+    <!-- =====================================================
+         ENERGIE
+         ===================================================== -->
+    <section class="card">
+        <h2>⚡ Energie</h2>
+  
+        <button onclick="haalEnergieDagOp()">
+            Energie gegevens dag ophalen
+        </button>
+
+        <pre id="energieDagData"></pre>
+    </section>
+
+    <!-- =====================================================
+         BATTERIJ
+         ===================================================== -->
+
+    <section class="card">
+        <h2>🔋 Batterij</h2>
+
+        <button onclick="haalBatterijDagOp()">
+            Batterij per dag ophalen
+        </button>
+
+        <pre id="batterijDagData"></pre>
+    </section>
+    
+    <!-- =====================================================
+         PERIODE
+         ===================================================== -->
+
+    <section class="card">
+        <h2>📅 Periode</h2>
+
+        <div class="periode">
+            <div>
+                <label for="startDatum">
+                    Van:
+                </label>
+
+                <input
+                    type="date"
+                    id="startDatum"
+                    value="2026-08-01"
+                >
+            </div>
+
+            <div>
+                <label for="eindDatum">
+                    Tot:
+                </label>
+
+                <input
+                    type="date"
+                    id="eindDatum"
+                    value="2026-08-07"
+                >
+            </div>
+        </div>
+
+        <button onclick="haalEnergiePeriodeOp()">
+            Energie periode ophalen
+        </button>
+
+        <pre id="energiePeriodeData"></pre>
+
+
+        <button onclick="haalBatterijPeriodeOp()">
+            Batterij periode ophalen
+        </button>
+
+        <pre id="batterijPeriodeData"></pre>
+
+    </section>
+
+    <footer>
+        Energy API Test © F.Demonie
+    </footer>
+
+    <script src="js/config.js">  </script>
+    <script src="js/script.js">  </script>
+
+</body>
+</html>
