@@ -5,6 +5,28 @@
 # --------------------------------------------------------------
 
 # ==============================================================
+# HULPFUNCTIES - DATATYPES VOOR API
+# ==============================================================
+
+def naar_float(waarde):
+    if waarde is None:
+        return None
+
+    return float(waarde)
+
+
+def naar_int(waarde):
+    if waarde is None:
+        return None
+
+    return int(waarde)
+
+def naar_timestamp(waarde):
+    if waarde is None:
+        return None
+    return waarde.isoformat()
+
+# ==============================================================
 # ENERGIE - DAG
 # ==============================================================
 
@@ -31,7 +53,34 @@ def energie_dag(verbinding, datum):
     resultaat = cursor.fetchone()
     cursor.close()
 
-    return resultaat
+    if resultaat is None:
+        return None
+
+    return {
+        "datapunten":
+            naar_int(resultaat["datapunten"]),
+
+        "eerste_meting":
+            naar_timestamp(resultaat["eerste_meting"]),
+
+        "laatste_meting":
+            naar_timestamp(resultaat["laatste_meting"]),
+
+        "production_kwh":
+            naar_float(resultaat["production_kwh"]),
+
+        "consumption_kwh":
+            naar_float(resultaat["consumption_kwh"]),
+
+        "feed_in_kwh":
+            naar_float(resultaat["feed_in_kwh"]),
+
+        "purchased_kwh":
+            naar_float(resultaat["purchased_kwh"]),
+
+        "self_consumption_kwh":
+            naar_float(resultaat["self_consumption_kwh"])
+    }
 
 # ==============================================================
 # ENERGIE - PERIODE
@@ -63,7 +112,37 @@ def energie_periode(verbinding, start_datum, eind_datum):
     resultaat = cursor.fetchone()
     cursor.close()
 
-    return resultaat
+    if resultaat is None:
+        return None
+
+    return {
+        "datapunten":
+            naar_int(resultaat["datapunten"]),
+
+        "eerste_meting":
+            naar_timestamp(resultaat["eerste_meting"]),
+
+        "laatste_meting":
+            naar_timestamp(resultaat["laatste_meting"]),
+
+        "beschikbare_dagen":
+            naar_int(resultaat["beschikbare_dagen"]),
+
+        "production_kwh":
+            naar_float(resultaat["production_kwh"]),
+
+        "consumption_kwh":
+            naar_float(resultaat["consumption_kwh"]),
+
+        "feed_in_kwh":
+            naar_float(resultaat["feed_in_kwh"]),
+
+        "purchased_kwh":
+            naar_float(resultaat["purchased_kwh"]),
+
+        "self_consumption_kwh":
+            naar_float(resultaat["self_consumption_kwh"])
+    }
 
 # ==============================================================
 # ENERGIE - PER DAG BINNEN PERIODE
@@ -205,32 +284,52 @@ def batterij_dag(verbinding, datum):
         )
 
     return {
+
+        # ------------------------------------------------------
         # Lifetime tellers
-        "charged_kwh": (
-            float(einde["lifetime_energy_charged_wh"])
-            - float(begin["lifetime_energy_charged_wh"])
-        ) / 1000,
+        # ------------------------------------------------------
 
-        "discharged_kwh": (
-            float(einde["lifetime_energy_discharged_wh"])
-            - float(begin["lifetime_energy_discharged_wh"])
-        ) / 1000,
+        "charged_kwh": naar_float(
+            (
+                einde["lifetime_energy_charged_wh"]
+                - begin["lifetime_energy_charged_wh"]
+            ) / 1000
+        ),
 
+        "discharged_kwh": naar_float(
+            (
+                einde["lifetime_energy_discharged_wh"]
+                - begin["lifetime_energy_discharged_wh"]
+            ) / 1000
+        ),
+
+        # ------------------------------------------------------
         # State of Charge
-        "soc_begin": soc_begin,
-        "soc_einde": soc_einde,
+        # ------------------------------------------------------
 
-        "soc_begin_timestamp": soc_begin_timestamp,
-        "soc_einde_timestamp": soc_einde_timestamp,
+        "soc_begin":
+            naar_float(soc_begin),
 
+        "soc_einde":
+            naar_float(soc_einde),
+
+        "soc_begin_timestamp":
+            naar_timestamp(soc_begin_timestamp),
+
+        "soc_einde_timestamp":
+            naar_timestamp(soc_einde_timestamp),
+
+        # ------------------------------------------------------
         # Beschikbare batterijcapaciteit
-        "capaciteit_begin_kwh": (
+        # ------------------------------------------------------
+
+        "capaciteit_begin_kwh": naar_float(
             begin["full_pack_energy_available_wh"] / 1000
             if begin["full_pack_energy_available_wh"] is not None
             else None
         ),
 
-        "capaciteit_einde_kwh": (
+        "capaciteit_einde_kwh": naar_float(
             einde["full_pack_energy_available_wh"] / 1000
             if einde["full_pack_energy_available_wh"] is not None
             else None
@@ -241,35 +340,50 @@ def batterij_dag(verbinding, datum):
         # ------------------------------------------------------
 
         "energie_opgeslagen_begin_kwh":
-            energie_opgeslagen_begin_kwh,
+            naar_float(energie_opgeslagen_begin_kwh),
 
         "energie_opgeslagen_einde_kwh":
-            energie_opgeslagen_einde_kwh,
+            naar_float(energie_opgeslagen_einde_kwh),
 
         "energie_opgeslagen_verschil_kwh":
-            energie_opgeslagen_verschil_kwh,
+            naar_float(energie_opgeslagen_verschil_kwh),
 
-        "netto_charged_kwh": (
+        "netto_charged_kwh": naar_float(
             (
-                einde["lifetime_energy_charged_wh"]
-                - begin["lifetime_energy_charged_wh"]
-            )
-            -
-            (
-                einde["lifetime_energy_discharged_wh"]
-                - begin["lifetime_energy_discharged_wh"]
-            )
-        ) / 1000,
+                (
+                    einde["lifetime_energy_charged_wh"]
+                    - begin["lifetime_energy_charged_wh"]
+                )
+                -
+                (
+                    einde["lifetime_energy_discharged_wh"]
+                    - begin["lifetime_energy_discharged_wh"]
+                )
+            ) / 1000
+        ),
 
+        # ------------------------------------------------------
         # Batterijvermogen
-        "power_begin": begin["power_w"],
-        "power_einde": einde["power_w"],
+        # ------------------------------------------------------
 
+        "power_begin":
+            naar_float(begin["power_w"]),
+
+        "power_einde":
+            naar_float(einde["power_w"]),
+
+        # ------------------------------------------------------
         # Metadata
-        "eerste_meting": begin["timestamp"],
-        "laatste_meting": einde["timestamp"],
+        # ------------------------------------------------------
 
-        "datapunten": len(rijen)
+        "eerste_meting":
+            naar_timestamp(begin["timestamp"]),
+
+        "laatste_meting":
+            naar_timestamp(einde["timestamp"]),
+
+        "datapunten":
+            naar_int(len(rijen))
     }
 
 # ==============================================================
@@ -335,76 +449,97 @@ def batterij_periode(verbinding, start_datum, eind_datum):
     # ----------------------------------------------------------
 
     return {
+
+        # ------------------------------------------------------
         # Lifetime tellers
-        "charged_kwh": (
-            laatste["lifetime_energy_charged_wh"]
-            - eerste["lifetime_energy_charged_wh"]
-        ) / 1000,
+        # ------------------------------------------------------
 
-        "discharged_kwh": (
-            laatste["lifetime_energy_discharged_wh"]
-            - eerste["lifetime_energy_discharged_wh"]
-        ) / 1000,
+        "charged_kwh": naar_float(
+            (
+                laatste["lifetime_energy_charged_wh"]
+                - eerste["lifetime_energy_charged_wh"]
+            ) / 1000
+        ),
 
+        "discharged_kwh": naar_float(
+            (
+                laatste["lifetime_energy_discharged_wh"]
+                - eerste["lifetime_energy_discharged_wh"]
+            ) / 1000
+        ),
+
+        # ------------------------------------------------------
         # State of Charge
-        "soc_begin": (
+        # ------------------------------------------------------
+
+        "soc_begin": naar_float(
             eerste_soc["battery_percentage"]
             if eerste_soc is not None
             else None
         ),
 
-        "soc_einde": (
+        "soc_einde": naar_float(
             laatste_soc["battery_percentage"]
             if laatste_soc is not None
             else None
         ),
 
-        "soc_begin_timestamp": (
+        "soc_begin_timestamp": naar_timestamp(
             eerste_soc["timestamp"]
             if eerste_soc is not None
             else None
         ),
 
-        "soc_einde_timestamp": (
+        "soc_einde_timestamp": naar_timestamp(
             laatste_soc["timestamp"]
             if laatste_soc is not None
             else None
         ),
 
-        "soc_begin_bekend": eerste_soc is not None,
+        "soc_begin_bekend":
+            eerste_soc is not None,
 
+        # ------------------------------------------------------
         # Beschikbare batterijcapaciteit
-        "capaciteit_begin_kwh": (
+        # ------------------------------------------------------
+
+        "capaciteit_begin_kwh": naar_float(
             eerste["full_pack_energy_available_wh"] / 1000
             if eerste["full_pack_energy_available_wh"] is not None
             else None
         ),
 
-        "capaciteit_einde_kwh": (
+        "capaciteit_einde_kwh": naar_float(
             laatste["full_pack_energy_available_wh"] / 1000
             if laatste["full_pack_energy_available_wh"] is not None
             else None
         ),
 
+        # ------------------------------------------------------
         # Batterijvermogen
+        # ------------------------------------------------------
+
         "power_begin":
-            eerste["power_w"],
+            naar_float(eerste["power_w"]),
 
         "power_einde":
-            laatste["power_w"],
+            naar_float(laatste["power_w"]),
 
+        # ------------------------------------------------------
         # Metadata
+        # ------------------------------------------------------
+
         "datapunten":
-            len(rijen),
+            naar_int(len(rijen)),
 
         "beschikbare_dagen":
-            beschikbare_dagen,
+            naar_int(beschikbare_dagen),
 
         "eerste_meting":
-            eerste["timestamp"],
+            naar_timestamp(eerste["timestamp"]),
 
         "laatste_meting":
-            laatste["timestamp"]
+            naar_timestamp(laatste["timestamp"])
     }
 
 # ==============================================================
@@ -563,6 +698,224 @@ def batterij_per_dag(verbinding, start_datum, eind_datum):
         })
 
     return resultaten
+
+# ==============================================================
+# ENERGIE - ACTUEEL
+# ==============================================================
+
+def energie_actueel(verbinding):
+
+    sql = """
+        SELECT
+            timestamp,
+            production_w,
+            consumption_w,
+            feed_in_w,
+            purchased_w,
+            self_consumption_w
+
+        FROM energy_power
+
+        ORDER BY timestamp DESC
+
+        LIMIT 1
+    """
+
+    cursor = verbinding.cursor(dictionary=True)
+    cursor.execute(sql)
+    energie = cursor.fetchone()
+    cursor.close()
+
+    if energie is None:
+        return None
+
+    # ----------------------------------------------------------
+    # Laatste batterijmeting
+    # ----------------------------------------------------------
+
+    sql_batterij = """
+        SELECT
+            timestamp,
+            power_w
+
+        FROM energy_battery
+
+        ORDER BY timestamp DESC
+
+        LIMIT 1
+    """
+
+    cursor = verbinding.cursor(dictionary=True)
+    cursor.execute(sql_batterij)
+    batterij = cursor.fetchone()
+    cursor.close()
+
+    # ----------------------------------------------------------
+    # Batterijvermogen
+    #
+    # Positief = laden
+    # Negatief = ontladen
+    # ----------------------------------------------------------
+
+    batterij_laden_w = 0
+    batterij_ontladen_w = 0
+
+    if batterij is not None and batterij["power_w"] is not None:
+
+        if batterij["power_w"] > 0:
+            batterij_laden_w = batterij["power_w"]
+
+        elif batterij["power_w"] < 0:
+            batterij_ontladen_w = abs(batterij["power_w"])
+
+    # ----------------------------------------------------------
+    # Zonneproductie verdelen
+    # ----------------------------------------------------------
+
+    productie_w = energie["production_w"]
+    injectie_w = energie["feed_in_w"]
+
+    # Voorlopige logische verdeling:
+    #
+    # injectie = naar net
+    # batterij laden = naar batterij
+    # rest = naar huis
+    #
+
+    naar_net_w = injectie_w
+
+    naar_batterij_w = batterij_laden_w
+
+    naar_huis_w = (
+        productie_w
+        - naar_net_w
+        - naar_batterij_w
+    )
+
+    # Negatieve waarde voorkomen door afrondingsverschillen
+    if naar_huis_w < 0:
+        naar_huis_w = 0
+
+    return {
+
+        "timestamp":
+            naar_timestamp(energie["timestamp"]),
+
+        "production_w":
+            naar_float(energie["production_w"]),
+
+        "consumption_w":
+            naar_float(energie["consumption_w"]),
+
+        "naar_huis_w":
+            naar_float(naar_huis_w),
+
+        "naar_batterij_w":
+            naar_float(naar_batterij_w),
+
+        "naar_net_w":
+            naar_float(naar_net_w),
+
+        "batterij_laden_w":
+            naar_float(batterij_laden_w),
+
+        "batterij_ontladen_w":
+            naar_float(batterij_ontladen_w),
+
+        "purchased_w":
+            naar_float(energie["purchased_w"])
+    }
+
+# ==============================================================
+# BATTERIJ - ACTUEEL
+# ==============================================================
+
+def batterij_actueel(verbinding):
+
+    sql = """
+        SELECT
+            timestamp,
+            lifetime_energy_charged_wh,
+            lifetime_energy_discharged_wh,
+            battery_percentage,
+            full_pack_energy_available_wh,
+            power_w
+
+        FROM energy_battery
+
+        ORDER BY timestamp DESC
+
+        LIMIT 1
+    """
+
+    cursor = verbinding.cursor(dictionary=True)
+    cursor.execute(sql)
+    batterij = cursor.fetchone()
+    cursor.close()
+
+    if batterij is None:
+        return None
+
+    # ----------------------------------------------------------
+    # Batterijvermogen
+    #
+    # Positief = laden
+    # Negatief = ontladen
+    # ----------------------------------------------------------
+
+    batterij_laden_w = 0
+    batterij_ontladen_w = 0
+
+    if batterij["power_w"] is not None:
+
+        if batterij["power_w"] > 0:
+            batterij_laden_w = batterij["power_w"]
+
+        elif batterij["power_w"] < 0:
+            batterij_ontladen_w = abs(batterij["power_w"])
+
+    # ----------------------------------------------------------
+    # Resultaat
+    # ----------------------------------------------------------
+
+    return {
+
+        "timestamp":
+            naar_timestamp(batterij["timestamp"]),
+
+        "battery_percentage":
+            naar_float(batterij["battery_percentage"]),
+
+        "full_pack_energy_available_kwh":
+            naar_float(
+                batterij["full_pack_energy_available_wh"] / 1000
+                if batterij["full_pack_energy_available_wh"] is not None
+                else None
+            ),
+
+        "power_w":
+            naar_float(batterij["power_w"]),
+
+        "batterij_laden_w":
+            naar_float(batterij_laden_w),
+
+        "batterij_ontladen_w":
+            naar_float(batterij_ontladen_w),
+
+        "lifetime_energy_charged_kwh":
+            naar_float(
+                batterij["lifetime_energy_charged_wh"] / 1000
+                if batterij["lifetime_energy_charged_wh"] is not None
+                else None
+            ),
+
+        "lifetime_energy_discharged_kwh":
+            naar_float(
+                batterij["lifetime_energy_discharged_wh"] / 1000
+                if batterij["lifetime_energy_discharged_wh"] is not None
+                else None
+            )
+    }
 
 # ==============================================================
 # DAGRAPPORT

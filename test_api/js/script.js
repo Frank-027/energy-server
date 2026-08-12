@@ -106,3 +106,44 @@ async function haalBatterijPeriodeOp() {
             "Fout: " + fout.message;
     }
 }
+
+// ============================================================
+// ENERGIE - ACTUEEL
+// ============================================================
+async function haalEnergieActueelOp() {
+
+    try {
+        const data = await apiAanroepen(
+            `http://${IP_ADDRESS}:5000/api/energie/actueel`
+        );
+
+        document.getElementById("energieActueelData").textContent =
+            JSON.stringify(data, null, 2);
+
+    } catch (fout) {
+
+        document.getElementById("energieActueelData").textContent =
+            "Fout: " + fout.message;
+    }
+}
+
+// ============================================================
+// BATTERIJ - ACTUEEL
+// ============================================================
+async function haalBatterijActueelOp() {
+
+    try {
+
+        const data = await apiAanroepen(
+            `http://${IP_ADDRESS}:5000/api/batterij/actueel`
+        );
+
+        document.getElementById("batterijActueelData").textContent =
+            JSON.stringify(data, null, 2);
+
+    } catch (fout) {
+
+        document.getElementById("batterijActueelData").textContent =
+            "Fout: " + fout.message;
+    }
+}

@@ -124,3 +124,46 @@ def bewaar_battery_data(verbinding, records):
   cursor.close()
 
   print(f"{len(records)} battery-record(s) opgeslagen.")
+
+# ==============================================================
+# API REQUEST LOGGING
+# ==============================================================
+
+def log_api_request(
+    verbinding,
+    api_key_id,
+    endpoint,
+    methode,
+    status_code
+):
+    """
+    Logt een API-request in de tabel api_requests.
+    """
+
+    sql = """
+        INSERT INTO api_requests (
+            api_key_id,
+            endpoint,
+            methode,
+            status_code
+        )
+        VALUES (%s, %s, %s, %s)
+    """
+
+    cursor = verbinding.cursor()
+
+    try:
+        cursor.execute(
+            sql,
+            (
+                api_key_id,
+                endpoint,
+                methode,
+                status_code
+            )
+        )
+
+        verbinding.commit()
+
+    finally:
+        cursor.close()

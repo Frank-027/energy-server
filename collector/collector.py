@@ -5,8 +5,8 @@
 # --------------------------------------------------------------
 
 import requests
-from config import laad_configuratie
-from database import ( 
+from .config import laad_configuratie
+from .database import ( 
   maak_databaseverbinding, 
   bewaar_power_data, 
   bewaar_battery_data 

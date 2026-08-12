@@ -1,0 +1,15 @@
+SELECT
+    MIN(timestamp) AS eerste_meting,
+    MAX(timestamp) AS laatste_meting,
+    COUNT(*) AS datapunten
+FROM energy_power
+WHERE DATE(timestamp) = '2026-08-12';
+
+En:
+
+SELECT
+    MIN(timestamp) AS eerste_meting,
+    MAX(timestamp) AS laatste_meting,
+    COUNT(*) AS datapunten
+FROM energy_battery
+WHERE DATE(timestamp) = '2026-08-12';

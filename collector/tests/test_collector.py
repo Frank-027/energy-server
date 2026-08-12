@@ -1,10 +1,10 @@
-from config import laad_configuratie
-from database import maak_databaseverbinding
-from collector import verzamel_en_bewaar
+from ..config import laad_configuratie
+from ..database import maak_databaseverbinding
+from ..collector import verzamel_en_bewaar
 
 
-start_time = "2026-08-01 00:00:00"
-end_time = "2026-08-08 00:00:00"
+start_time = "2026-08-12 00:00:00"
+end_time = "2026-08-12 13:45:00"
 
 config = laad_configuratie()
 

@@ -3,22 +3,52 @@
 #
 # haalt SolarEdge data op en publiceert via een REST-api
 # ==============================================================
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, g
 from flask_cors import CORS
 import hashlib
 
 from ..config import laad_configuratie
-from ..database import maak_databaseverbinding
+from ..database import maak_databaseverbinding, log_api_request
 from ..reports.reports import ( 
   energie_dag, 
   energie_periode,
   batterij_dag,
-  batterij_periode
+  batterij_periode,
+  energie_actueel,
+  batterij_actueel
 )  
 
 
 app = Flask(__name__)
 CORS(app)
+
+@app.after_request
+def log_request(response):
+
+    if hasattr(g, "api_key_id"):
+
+        config = laad_configuratie()
+
+        if config is not None:
+
+            verbinding = maak_databaseverbinding(config)
+
+            if verbinding is not None:
+
+                try:
+
+                    log_api_request(
+                        verbinding,
+                        g.api_key_id,
+                        request.path,
+                        request.method,
+                        response.status_code
+                    )
+
+                finally:
+                    verbinding.close()
+
+    return response
 
 # ==============================================================
 # Functie die API Keys van de leerlingen valideert.
@@ -73,7 +103,10 @@ def controleer_api_key(config):
         cursor.execute(sql_update, (resultaat["id"],))
         verbinding.commit()
 
-        return resultaat["leerling"]
+        g.api_key_id = resultaat["id"]
+        g.leerling = resultaat["leerling"]
+
+        return resultaat
 
     finally:
         cursor.close()
@@ -93,9 +126,9 @@ def api_energie_dag(datum):
         }), 500
 
     # API-key controleren
-    leerling = controleer_api_key(config)
+    auth = controleer_api_key(config)
 
-    if leerling is None:
+    if auth is None:
         return jsonify({
             "error": "Ongeldige of ontbrekende API-key."
         }), 401
@@ -133,9 +166,9 @@ def api_energie_periode(start_datum, eind_datum):
             "error": "Configuratie kon niet worden geladen."
         }), 500
 
-    leerling = controleer_api_key(config)
+    auth = controleer_api_key(config)
 
-    if leerling is None:
+    if auth is None:
         return jsonify({
             "error": "Ongeldige of ontbrekende API-key."
         }), 401
@@ -173,9 +206,9 @@ def api_batterij_dag(datum):
             "error": "Configuratie kon niet worden geladen."
         }), 500
 
-    leerling = controleer_api_key(config)
+    auth = controleer_api_key(config)
 
-    if leerling is None:
+    if auth is None:
         return jsonify({
             "error": "Ongeldige of ontbrekende API-key."
         }), 401
@@ -217,9 +250,9 @@ def api_batterij_periode(start_datum, eind_datum):
             "error": "Configuratie kon niet worden geladen."
         }), 500
 
-    leerling = controleer_api_key(config)
+    auth = controleer_api_key(config)
 
-    if leerling is None:
+    if auth is None:
         return jsonify({
             "error": "Ongeldige of ontbrekende API-key."
         }), 401
@@ -246,4 +279,78 @@ def api_batterij_periode(start_datum, eind_datum):
         return jsonify(resultaat)
 
     finally:
-        verbinding.close()                
+        verbinding.close() 
+# ==============================================================
+# ENERGIE - ACTUEEL
+# ==============================================================
+@app.route("/api/energie/actueel")
+def api_energie_actueel():
+
+    config = laad_configuratie()
+
+    if config is None:
+        return jsonify({
+            "error": "Configuratie kon niet worden geladen."
+        }), 500
+
+    auth = controleer_api_key(config)
+
+    if auth is None:
+        return jsonify({
+            "error": "Ongeldige of ontbrekende API-key."
+        }), 401
+
+    verbinding = maak_databaseverbinding(config)
+
+    if verbinding is None:
+        return jsonify({
+            "error": "Databaseverbinding kon niet worden gemaakt."
+        }), 500
+
+    try:
+        resultaat = energie_actueel(verbinding)
+
+        return jsonify(resultaat)
+
+    finally:
+        verbinding.close() 
+
+# ==============================================================
+# BATTERIJ - ACTUEEL
+# ==============================================================
+@app.route("/api/batterij/actueel")
+def api_batterij_actueel():
+
+    config = laad_configuratie()
+
+    if config is None:
+        return jsonify({
+            "error": "Configuratie kon niet worden geladen."
+        }), 500
+
+    auth = controleer_api_key(config)
+
+    if auth is None:
+        return jsonify({
+            "error": "Ongeldige of ontbrekende API-key."
+        }), 401
+
+    verbinding = maak_databaseverbinding(config)
+
+    if verbinding is None:
+        return jsonify({
+            "error": "Databaseverbinding kon niet worden gemaakt."
+        }), 500
+
+    try:
+        resultaat = batterij_actueel(verbinding)
+
+        if resultaat is None:
+            return jsonify({
+                "error": "Geen batterijgegevens beschikbaar."
+            }), 404
+
+        return jsonify(resultaat)
+
+    finally:
+        verbinding.close()
