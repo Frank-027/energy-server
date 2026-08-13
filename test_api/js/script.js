@@ -69,6 +69,26 @@ async function haalEnergiePeriodeOp() {
 }
 
 // ============================================================
+// ENERGIE - PER DAG
+// ============================================================
+async function haalEnergiePerDagOp() {
+    const startDatum = document.getElementById("startDatum").value;
+    const eindDatum = document.getElementById("eindDatum").value;
+
+    try {
+        const data = await apiAanroepen(
+            `http://${IP_ADDRESS}:5000/api/energie/perdag/${startDatum}/${eindDatum}`
+        );
+        
+        document.getElementById("energiePerDagData").textContent =
+            JSON.stringify(data, null, 2);
+    } catch ( fout ) {
+        document.getElementById("energiePerDagData").textContent = 
+            "Fout: " + fout.message;
+    }
+}
+
+// ============================================================
 // BATTERIJ - DAG
 // ============================================================
 async function haalBatterijDagOp() {
@@ -103,6 +123,26 @@ async function haalBatterijPeriodeOp() {
             JSON.stringify(data, null, 2);
     } catch ( fout ) {
         document.getElementById("batterijPeriodeData").textContent = 
+            "Fout: " + fout.message;
+    }
+}
+
+// ============================================================
+// BATTERIJ - PER DAG
+// ============================================================
+async function haalBatterijPerDagOp() {
+    const startDatum = document.getElementById("startDatum").value;
+    const eindDatum = document.getElementById("eindDatum").value;
+
+    try {
+        const data = await apiAanroepen(
+            `http://${IP_ADDRESS}:5000/api/batterij/perdag/${startDatum}/${eindDatum}`
+        );
+        
+        document.getElementById("batterijPerDagData").textContent =
+            JSON.stringify(data, null, 2);
+    } catch ( fout ) {
+        document.getElementById("batterijPerDagData").textContent = 
             "Fout: " + fout.message;
     }
 }
