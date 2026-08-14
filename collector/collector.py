@@ -4,6 +4,7 @@
 # version 1.1 F.Demonie
 # --------------------------------------------------------------
 
+from datetime import datetime, timedelta
 import requests
 from .config import laad_configuratie
 from .database import ( 
@@ -267,3 +268,59 @@ def verzamel_en_bewaar(config, verbinding, start_time, end_time):
                 verbinding,
                 battery_records
             )
+
+# --------------------------------------------------------------
+# MAIN
+# --------------------------------------------------------------
+
+def main():
+
+    # ----------------------------------------------------------
+    # Configuratie laden
+    # ----------------------------------------------------------
+
+    config = laad_configuratie()
+
+    if config is None:
+        print("Fout: configuratie kon niet worden geladen.")
+        return
+
+    # ----------------------------------------------------------
+    # Tijdvenster bepalen
+    #
+    # We halen telkens de laatste 30 minuten opnieuw op.
+    # Door ON DUPLICATE KEY UPDATE worden bestaande records
+    # bijgewerkt en ontstaan er geen dubbele records.
+    # ----------------------------------------------------------
+
+    einde = datetime.now()
+    begin = einde - timedelta(minutes=30)
+
+    start_time = begin.strftime("%Y-%m-%d %H:%M:%S")
+    end_time = einde.strftime("%Y-%m-%d %H:%M:%S")
+
+    # ----------------------------------------------------------
+    # Databaseverbinding
+    # ----------------------------------------------------------
+
+    verbinding = maak_databaseverbinding(config)
+
+    if verbinding is None:
+        print("Fout: databaseverbinding kon niet worden gemaakt.")
+        return
+
+    try:
+
+        verzamel_en_bewaar(
+            config,
+            verbinding,
+            start_time,
+            end_time
+        )
+
+    finally:
+        verbinding.close()
+
+
+if __name__ == "__main__":
+    main()
