@@ -98,6 +98,17 @@ def verwerk_power_data(data):
       for value in meter["values"]:
         if value["date"] == timestamp:
 
+          # SolarEdge geeft soms een record zonder "value"
+          if "value" not in value:
+            print(
+                f"WAARSCHUWING: ontbrekende value: "
+                f"timestamp={timestamp}, "
+                f"meter={meter_type}, "
+                f"record={value}",
+                flush=True
+            )
+            continue
+
           if meter_type == "Purchased":
             record["purchased_w"] = value["value"]
 
@@ -112,6 +123,22 @@ def verwerk_power_data(data):
 
           elif meter_type == "FeedIn":
             record["feed_in_w"] = value["value"]
+
+    # Controleren of alle vijf meetwaarden aanwezig zijn
+    ontbrekende_velden = [
+        veldnaam
+        for veldnaam, meetwaarde in record.items()
+        if veldnaam != "timestamp" and meetwaarde is None
+    ]
+
+    if ontbrekende_velden:
+      print(
+          f"WAARSCHUWING: onvolledig power-record overgeslagen: "
+          f"timestamp={timestamp}, "
+          f"ontbrekend={ontbrekende_velden}",
+          flush=True
+      )
+      continue
 
     records.append(record)
 
