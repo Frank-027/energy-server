@@ -98,8 +98,17 @@ def verwerk_power_data(data):
       for value in meter["values"]:
         if value["date"] == timestamp:
 
-          # SolarEdge geeft soms een record zonder "value"
+          # SolarEdge laat bij nulproductie soms "value" weg
           if "value" not in value:
+
+            if meter_type == "Production":
+              record["production_w"] = 0
+              continue
+
+            elif meter_type == "SelfConsumption":
+              record["self_consumption_w"] = 0
+              continue
+
             print(
                 f"WAARSCHUWING: ontbrekende value: "
                 f"timestamp={timestamp}, "
